@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+     <meta charset="UTF-8">
+      <script src="/socket.io/socket.io.js"></script>
+      <title>Client</title>
+      <script>
+      var socketio = io.connect();
+          var name;
+          var chatroom;
+      socketio.on("message_to_client",function(data) {
+         //Append an HR thematic break and the escaped HTML of the new message
+         //if (chatroom == )
+         document.getElementById("chatlog").appendChild(document.createElement("hr"));
+         if(data["ownercheck"] == "true"){
+              document.getElementById("chatlog").appendChild(document.createTextNode("OWNER OF CHATROOM:: " + data['message']));
+          }
+          else{
+              document.getElementById("chatlog").appendChild(document.createTextNode(data['message']));
+          }
+          //document.getElementById("chatlog").appendChild(document.createTextNode(data['totalUsers']));
+         document.getElementById("userList").innerHTML = data['totalUsers'];
+      });
+
+
+      socketio.on("join_success_to_client",function(data) {
+          if(data["joinchatroom"] != ""){
+              chatroom = data["joinchatroom"];
+              if(data["errMess"] != ""){
+                  alert(data["errMess"]);
+              }
+              socketio.emit("message_to_server", {message:"AUTOMATED :: A New User has join the chat!", chatroom:chatroom});
+
+
+          }
+          else{
+              alert(data["errMess"]);
+              location.reload();
+          }
+
+
+      });
+
+          socketio.on("create_fail",function(data) {
+          if(data["errMess"] != ""){
+              alert(data["errMess"]);
+              location.reload();
+          }
+
+
+
+      });
+          socketio.on("leave_room",function(data) {
+          if(data["errMess"] != ""){
+              socketio.emit("message_to_server", {message:"AUTOMATED :: A user has left the chatroom!", chatroom:chatroom});
+
+          }
+
+
+
+      });
+
+
+        function setUser(){
+
+
+
+        }
+
+          function setChatRoom(){
+              chatroom = document.getElementById("chatroom_input").value;
+              name = document.getElementById("name_input").value;
+              if(name == "" || chatroom == ""){
+                  alert("Please enter in your name and chatroom to create");
+                  location.reload();
+              }
+              else{
+
+
+              password = document.getElementById("password_input").value;
+              var link = document.getElementById("chatroom");
+              socketio.emit("chatroom_to_server", {chatroom:chatroom,name:name,password:password});
+              link.style.visibility = 'hidden';
+              document.getElementById("messageArea").style.visibility = "visible";
+              var link = document.getElementById("username");
+            link.style.visibility = 'hidden';
+            document.getElementById("messageArea").style.visibility = "visible";
+              }
+          }
+      function sendMessage(){
+         var msg = "<Room: " + chatroom + "> " + " <Name: " + name + ">: "+ document.getElementById("message_input").value;
+         //console.log(chatroom);
+          //socketio.emit("name_to_server", {name:name});
+          socketio.emit("message_to_server", {message:msg, chatroom:chatroom, name:name});
+      }
+
+      //needs fixing:
+      function sendPrivMessage(){
+        var recipient = document.getElementById("userinput").value;
+         var msg = "to: " + document.getElementById("userinput").value + " chatroom: " + chatroom + "---" + " name: " + name + "---"+ " message: " + document.getElementById("privmessage_input").value;
+         console.log(msg);
+
+          //socketio.emit("name_to_server", {name:name});
+          socketio.emit("priv_message_to_server", {messageto:recipient, name: name, message:msg, chatroom:chatroom});
+      }
+
+
+      //needs fixing:
+      function banUser(){
+
+         //var msg = "to: " + document.getElementById("userinput") + "chatroom: " + chatroom + "---" + "name: " + name + "---"+ "message: " + document.getElementById("privmessage_input").value;
+         //console.log(chatroom);
+
+         var baninput = document.getElementById("baninput").value;
+
+         //console.log("name is" + name);
+        // console.log("chatroom is" + chatroom);
+        // console.log("baninput is" + baninput);
+
+          //socketio.emit("name_to_server", {name:name});
+          socketio.emit("ban_to_server", {name:name, chatroom:chatroom, baninput:baninput});
+      }
+
+      //needs fixing:
+      function kickUser(){
+
+         //var msg = "to: " + document.getElementById("userinput") + "chatroom: " + chatroom + "---" + "name: " + name + "---"+ "message: " + document.getElementById("privmessage_input").value;
+         //console.log(chatroom);
+
+         var kickinput = document.getElementById("kickinput").value;
+
+          //socketio.emit("name_to_server", {name:name});
+          //console.log("name is" + name);
+          //console.log("chatroom is" + chatroom);
+          //console.log("baninput is" + baninput);
+          socketio.emit("kick_to_server", {name:name, chatroom:chatroom, kickinput:kickinput});
+      }
+
+
+
+     function joinRoom(){
+         var chatroomjoin = document.getElementById("join_input").value;
+         var password = document.getElementById("joinpassinput").value;
+         //chatroom = document.getElementById("join_input").value;
+         name = document.getElementById("name_input").value;
+         if(name == "" || chatroomjoin == ""){
+                  alert("Please enter in your name and the chatroom you want to join");
+                  location.reload();
+        }else{
+
+         socketio.emit("joinroom_to_server", {chatroomjoin:chatroomjoin,name:name, chatroom:chatroom, password:password});
+         document.getElementById("chatroom").style.visibility = 'hidden';
+         document.getElementById("username").style.visibility = 'hidden';
+         document.getElementById("messageArea").style.visibility = "visible";
+         //if successfully join
+         document.getElementById("chatlog").innerHTML = "";
+        }
+     }
+
+
+
+     setInterval(function(){
+    //console.log("client interval");
+    //console.log("chatroom is " + chatroom);
+    //console.log("name is " + name);
+    socketio.emit("timer", {chatroom:chatroom, name:name});
+
+}, 5000);
+
+
+socketio.on("left",function(data) {
+  location.reload();
+  console.log("someone was kicked");
+});
+
+
+      </script>
+   </head>
+   <body>
+       <div id="username">Name(REQUIRED): <input type="text" id="name_input"/>
+       <br><br></div>
+       <hr>
+       <div id = "chatroom"> Chatroom: <input type="text" id = "chatroom_input"/>
+       Password: <input type="text" id="password_input"/>
+       <button onclick="setChatRoom()"> Create Chatroom</button>
+       <br></div>
+       <hr>
+       <br>
+       Join Room: <input type="text" id="join_input"/>
+       Room password: <input type="text" id="joinpassinput"/>
+       <button onclick="joinRoom()"> Enter Chatroom</button>
+
+<hr>
+          <div id="privateMessageArea">
+          Message Content: <input type="text" id="privmessage_input"/>
+          User in chatroom: <input type="text" id="userinput"/>
+          <button onclick="sendPrivMessage()">Send Private Message</button>
+             </div>
+<hr>
+
+
+       <div id="ownerArea">
+       If you are creator of Chatroom. You can ban a user here: <input type="text" id="baninput"/>
+       <button onclick="banUser()"> Ban User</button>
+       <br>
+       If you are creator of Chatroom. You can kick a user here: <input type="text" id="kickinput"/>
+       <button onclick="kickUser()"> Kick User</button></div>
+<hr>
+       <br>
+       <br>
+
+       <div id="messageArea">
+      Message: <input type="text" id="message_input"/>
+      <button onclick="sendMessage()">Send Message</button>
+          </div>
+
+          List of users: <div id="userList"> </div>
+          <br>
+
+       <br>
+      <div id="chatlog"></div>
+
+       <script>
+           document.getElementById("messageArea").style.visibility = "hidden";
+
+</script>
+   </body>
+</html>
